@@ -93,6 +93,11 @@ reemplazar("libs/portable/Cargo.toml", [
     ('FileDescription = "RustDesk Remote Desktop"', f'FileDescription = "{NOMBRE_VISIBLE}"'),
 ])
 
+# el aviso «Para una conexión más rápida, configure su propio servidor» sobra: ya trae el nuestro
+reemplazar("flutter/lib/desktop/pages/connection_page.dart", [
+    ('offstage: !(!_svcStopped.value &&', 'offstage: true || !(!_svcStopped.value &&'),
+])
+
 copiar("icon.ico", "res/icon.ico")
 copiar("tray-icon.ico", "res/tray-icon.ico")
 copiar("icon.png", "res/icon.png")
@@ -102,5 +107,19 @@ copiar("128x128.png", "res/128x128.png")
 copiar("128x128@2x.png", "res/128x128@2x.png")
 copiar("icon.ico", "flutter/windows/runner/resources/app_icon.ico")
 copiar("icon.svg", "flutter/assets/icon.svg")
+
+# logo de la columna izquierda de la ventana (RustDesk lo enseña solo si existe; máx. 300x60)
+def anadir(origen, destino):
+    o = os.path.join(MARCA, origen)
+    d = os.path.join(RAIZ, destino)
+    if os.path.exists(d):
+        sys.exit(f"ERROR: ya existe {d}: RustDesk trae ahora su propio logo, revisar")
+    shutil.copyfile(o, d)
+    print(f"ok  logo {destino}")
+
+
+anadir("logo.png", "flutter/assets/logo.png")
+anadir("logo_light.png", "flutter/assets/logo_light.png")
+anadir("logo_dark.png", "flutter/assets/logo_dark.png")
 
 print("Marca Apolonia Soporte aplicada.")
