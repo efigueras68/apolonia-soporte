@@ -164,6 +164,13 @@ jobs:
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/ApoloniaSoporte-${{ env.VERSION }}.exe
 
+      - name: Comprobar la marca en el ejecutable que se descarga
+        shell: powershell
+        run: |
+          $v = (Get-Item ".\SignOutput\ApoloniaSoporte-${{ env.VERSION }}.exe").VersionInfo
+          Write-Host "Producto: $($v.ProductName) | Descripción: $($v.FileDescription)"
+          if ($v.ProductName -ne 'Apolonia Soporte') { throw "El ejecutable descargable no lleva la marca (ProductName=$($v.ProductName))" }
+
       - name: Upload ejecutable (sin firmar)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

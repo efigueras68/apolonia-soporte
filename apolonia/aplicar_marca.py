@@ -76,6 +76,14 @@ reemplazar("Cargo.toml", [
     ('FileDescription = "RustDesk Remote Desktop"', f'FileDescription = "{NOMBRE_VISIBLE}"'),
 ])
 
+# el envoltorio que se descarga (descomprime y abre el programa) tiene sus propios textos
+reemplazar("libs/portable/Cargo.toml", [
+    ('description = "RustDesk Remote Desktop"', f'description = "{NOMBRE_VISIBLE}"'),
+    ('LegalCopyright = "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved."', f'LegalCopyright = "{COPYRIGHT}"'),
+    ('ProductName = "RustDesk"', f'ProductName = "{NOMBRE_VISIBLE}"'),
+    ('FileDescription = "RustDesk Remote Desktop"', f'FileDescription = "{NOMBRE_VISIBLE}"'),
+])
+
 copiar("icon.ico", "res/icon.ico")
 copiar("tray-icon.ico", "res/tray-icon.ico")
 copiar("icon.png", "res/icon.png")
