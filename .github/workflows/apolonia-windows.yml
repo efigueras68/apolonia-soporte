@@ -147,7 +147,47 @@ jobs:
           Write-Host "Producto: $($v.ProductName) | Empresa: $($v.CompanyName) | Versión: $($v.ProductVersion)"
           if ($v.ProductName -ne 'Apolonia Soporte') { throw "El ejecutable no lleva la marca (ProductName=$($v.ProductName))" }
 
-      - name: Upload carpeta (sin firmar)
+      # Firma de Microsoft de Apolonia (Azure Artifact Signing, cuenta apolonia-firma, perfil dentalplace,
+      # a nombre de APOLONIA SISTEMAS Y APLICACIONES, S.L.). Datos de acceso en los secretos del repositorio
+      # AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET. Sin ellos la compilación se para: nunca
+      # se publica un programa sin firmar (Windows con Control inteligente de aplicaciones lo bloquea).
+      - name: Comprobar que hay datos de firma
+        shell: bash
+        env:
+          T: ${{ secrets.AZURE_TENANT_ID }}
+          C: ${{ secrets.AZURE_CLIENT_ID }}
+          S: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: |
+          if [ -z "$T" ] || [ -z "$C" ] || [ -z "$S" ]; then
+            echo "Faltan los secretos AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET en el repositorio."; exit 1
+          fi
+
+      - name: Firmar los ficheros del programa (exe y dll)
+        uses: azure/artifact-signing-action@208f8af4bf26cf2af8597424e3cb5582801523ba # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://neu.codesigning.azure.net/
+          signing-account-name: apolonia-firma
+          certificate-profile-name: dentalplace
+          files-folder: ${{ github.workspace }}\rustdesk
+          files-folder-filter: exe,dll
+          files-folder-recurse: false
+          file-digest: SHA256
+          timestamp-digest: SHA256
+          description: Apolonia Soporte
+
+      - name: Comprobar las firmas de los ficheros del programa
+        shell: powershell
+        run: |
+          Get-ChildItem ./rustdesk -File | Where-Object { $_.Extension -in '.exe','.dll' } | ForEach-Object {
+            $s = Get-AuthenticodeSignature -LiteralPath $_.FullName
+            Write-Host "$($s.Status)  $($_.Name)"
+            if ($s.Status -ne 'Valid') { throw "Sin firma válida: $($_.Name) ($($s.Status))" }
+          }
+
+      - name: Upload carpeta (firmada)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: apolonia-soporte-carpeta-x64
@@ -171,9 +211,31 @@ jobs:
           Write-Host "Producto: $($v.ProductName) | Descripción: $($v.FileDescription)"
           if ($v.ProductName -ne 'Apolonia Soporte') { throw "El ejecutable descargable no lleva la marca (ProductName=$($v.ProductName))" }
 
-      - name: Upload ejecutable (sin firmar)
+      - name: Firmar el ejecutable que se descarga
+        uses: azure/artifact-signing-action@208f8af4bf26cf2af8597424e3cb5582801523ba # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://neu.codesigning.azure.net/
+          signing-account-name: apolonia-firma
+          certificate-profile-name: dentalplace
+          files-folder: ${{ github.workspace }}\SignOutput
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-digest: SHA256
+          description: Apolonia Soporte
+
+      - name: Comprobar la firma del ejecutable
+        shell: powershell
+        run: |
+          $s = Get-AuthenticodeSignature ".\SignOutput\ApoloniaSoporte-${{ env.VERSION }}.exe"
+          Write-Host "$($s.Status) - $($s.SignerCertificate.Subject)"
+          if ($s.Status -ne 'Valid') { throw "El ejecutable no tiene firma válida ($($s.Status))" }
+
+      - name: Upload ejecutable (firmado)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ApoloniaSoporte-${{ env.VERSION }}-x64-sin-firmar
+          name: ApoloniaSoporte-${{ env.VERSION }}-x64
           path: ./SignOutput/ApoloniaSoporte-${{ env.VERSION }}.exe
           if-no-files-found: error
