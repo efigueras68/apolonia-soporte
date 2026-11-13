@@ -76,6 +76,15 @@ reemplazar("Cargo.toml", [
     ('FileDescription = "RustDesk Remote Desktop"', f'FileDescription = "{NOMBRE_VISIBLE}"'),
 ])
 
+# nombre que ve la clínica al pedirle permiso («Soporte Apolonia quiere conectarse»), en lugar del
+# usuario de Windows de quien se conecta
+NOMBRE_TECNICO = "Soporte Apolonia"
+reemplazar("src/client.rs", [
+    ('let mut display_name = get_builtin_option(keys::OPTION_DISPLAY_NAME);',
+     'let mut display_name = { let n = get_builtin_option(keys::OPTION_DISPLAY_NAME); '
+     f'if n.is_empty() {{ "{NOMBRE_TECNICO}".to_owned() }} else {{ n }} }};'),
+])
+
 # el envoltorio que se descarga (descomprime y abre el programa) tiene sus propios textos
 reemplazar("libs/portable/Cargo.toml", [
     ('description = "RustDesk Remote Desktop"', f'description = "{NOMBRE_VISIBLE}"'),
